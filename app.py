@@ -4,9 +4,7 @@ import uvicorn
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import os
 
 from backend import run_travel_agent
 
@@ -90,11 +88,6 @@ async def health_check():
 async def favicon():
     return JSONResponse(content={})
 
-
-# Serve static frontend files
-frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
-if os.path.exists(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 
 if __name__ == "__main__":
