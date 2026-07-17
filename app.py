@@ -76,6 +76,12 @@ async def travel_planner(request_data: TravelRequest):
         )
 
 
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "message": "Travex AI Backend is running. Use /api/travel for the main endpoint."
+    }
 
 @app.get("/health")
 async def health_check():
