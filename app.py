@@ -102,9 +102,12 @@ async def health_check():
 
 
 @app.get("/favicon.ico")
-async def favicon():
+async def favicon_ico():
     return JSONResponse(content={})
 
+@app.get("/favicon.png")
+async def favicon_png():
+    return JSONResponse(content={})
 
 
 
