@@ -15,14 +15,12 @@ const LOADING_MESSAGES = [
 
 export default function App() {
   const [query, setQuery] = useState("");
-  const [followupQuery, setFollowupQuery] = useState("");
   const [threadId, setThreadId] = useState(null);
   
   const [status, setStatus] = useState("idle"); // idle, loading, success, error
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState(null);
-  const [rawResults, setRawResults] = useState(null);
   
   const resultsRef = useRef(null);
 
@@ -37,20 +35,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, [status]);
 
-  const handleSubmit = async (e, isFollowup = false) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const currentQuery = isFollowup ? followupQuery : query;
-    if (!currentQuery.trim()) return;
+    if (!query.trim()) return;
 
     setStatus("loading");
     setLoadingMsgIdx(0);
 
     try {
-      const res = await fetch('/api/travel', {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/travel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: currentQuery,
+          message: query,
           thread_id: threadId
         })
       });
@@ -63,13 +61,7 @@ export default function App() {
 
       setThreadId(data.thread_id);
       setResult(data.answer);
-      setRawResults({
-        flights: data.flight_results,
-        hotels: data.hotel_results,
-        activities: data.activities_results
-      });
       setStatus("success");
-      if (isFollowup) setFollowupQuery("");
       
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,7 +78,6 @@ export default function App() {
     setQuery("");
     setThreadId(null);
     setResult(null);
-    setRawResults(null);
   };
 
   return (
@@ -132,7 +123,7 @@ export default function App() {
                 Describe your dream destination, budget, and vibe. Our multi-agent LangGraph system handles the rest.
               </p>
 
-              <form onSubmit={e => handleSubmit(e, false)} className="w-full glass-panel p-2 pl-6 flex items-center gap-4 transition-all focus-within:ring-2 focus-within:ring-indigo-500/50">
+              <form onSubmit={handleSubmit} className="w-full glass-panel p-2 pl-6 flex items-center gap-4 transition-all focus-within:ring-2 focus-within:ring-indigo-500/50">
                 <input 
                   type="text"
                   value={query}
@@ -285,55 +276,13 @@ export default function App() {
                 </div>
               </div>
 
-              {rawResults && (
-                <div className="glass-panel p-6 mb-6">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                     <BrainCircuit className="w-5 h-5 text-purple-400" /> Agent Live Research Data
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                       <h4 className="font-semibold text-indigo-300 mb-2 flex items-center gap-2"><Plane className="w-4 h-4"/> Flights</h4>
-                       <div className="text-xs text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap">{rawResults.flights || "No data"}</div>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                       <h4 className="font-semibold text-pink-300 mb-2 flex items-center gap-2"><Hotel className="w-4 h-4"/> Hotels</h4>
-                       <div className="text-xs text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap">{rawResults.hotels || "No data"}</div>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                       <h4 className="font-semibold text-emerald-300 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4"/> Activities</h4>
-                       <div className="text-xs text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap">{rawResults.activities || "No data"}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              <form 
-                onSubmit={e => handleSubmit(e, true)}
-                className="glass-panel p-2 pl-4 flex items-center gap-3"
-              >
-                <input 
-                  type="text"
-                  value={followupQuery}
-                  onChange={e => setFollowupQuery(e.target.value)}
-                  placeholder="Ask a follow-up... (e.g. 'Find cheaper hotels' or 'Add a museum visit')"
-                  className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-slate-400"
-                />
-                <button 
-                  type="submit"
-                  disabled={!followupQuery.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </form>
             </div>
           )}
 
         </main>
         
-        <footer className="mt-auto pt-12 pb-4 text-center text-slate-500 text-sm">
-          Built with React, Vite, FastAPI & LangGraph
-        </footer>
+
       </div>
     </>
   );
