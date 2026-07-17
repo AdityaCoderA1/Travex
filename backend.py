@@ -699,18 +699,6 @@ graph.add_edge("final_agent", END)
 # =========================
 DATABASE_URL = get_database_url()
 
-_conn = psycopg.connect(
-    DATABASE_URL,
-    autocommit=True,
-    row_factory=dict_row
-)
-
-checkpointer = PostgresSaver(_conn)
-checkpointer.setup()
-
-travel_graph = graph.compile(checkpointer=checkpointer)
-
-
 
 # =========================
 # Function for FastAPI
@@ -726,7 +714,12 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         }
     }
 
-    result = travel_graph.invoke(
+    with psycopg.connect(DATABASE_URL, autocommit=True, row_factory=dict_row) as conn:
+        checkpointer = PostgresSaver(conn)
+        checkpointer.setup()
+        travel_graph = graph.compile(checkpointer=checkpointer)
+
+        result = travel_graph.invoke(
         {
             "messages": [
                 HumanMessage(content=user_input)
