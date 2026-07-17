@@ -11,10 +11,20 @@ from backend import run_travel_agent
 
 BASE_DIR = Path(__file__).resolve().parent
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="Travex",
     description="LangGraph Multi-Agent Travel Planner with FastAPI Frontend",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 
