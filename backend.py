@@ -53,13 +53,25 @@ if not GROQ_API_KEY:
 # LLM
 # =========================
 
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    api_key=GROQ_API_KEY,
-    max_tokens=1500,
-    max_retries=10,
-    timeout=60
-)
+models = [
+    "llama-3.1-8b-instant",
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+    "llama-3.3-70b-versatile"
+]
+
+llms = [
+    ChatGroq(
+        model=m,
+        api_key=GROQ_API_KEY,
+        max_tokens=1500,
+        max_retries=0, # Fail fast and fallback
+        timeout=30
+    ) for m in models
+]
+
+llm = llms[0].with_fallbacks(llms[1:])
 
 
 # =========================
@@ -302,7 +314,8 @@ Rules:
 
 Determine if valid and provide feedback if not.
 """
-    validator_llm = llm.with_structured_output(BudgetValidation)
+    validator_llms = [base_llm.with_structured_output(BudgetValidation) for base_llm in llms]
+    validator_llm = validator_llms[0].with_fallbacks(validator_llms[1:])
     
     try:
         result = validator_llm.invoke([
