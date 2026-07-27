@@ -25,6 +25,7 @@ from langchain_core.messages import (
 )
 from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from tools.tavily_tool import tavily_search
 from tools.flight_tool import search_flights
 
@@ -48,17 +49,19 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file.")
 
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
 
 # =========================
 # LLM
 # =========================
 
 models = [
-    "llama-3.1-8b-instant",
-    "llama3-8b-8192",
-    "mixtral-8x7b-32768",
-    "gemma2-9b-it",
-    "llama-3.3-70b-versatile"
+    "llama-3.1-8b-instant",   # 500k TPD
+    "llama3-8b-8192",         # 500k TPD
+    "mixtral-8x7b-32768",     # 500k TPD
+    "gemma2-9b-it",           # 500k TPD
+    "llama-3.3-70b-versatile" # 100k TPD — best quality
 ]
 
 llms = [
@@ -71,6 +74,20 @@ llms = [
     ) for m in models
 ]
 
+# OpenRouter as last-resort fallback when all Groq daily limits are exhausted
+if OPENROUTER_API_KEY:
+    llms.append(
+        ChatOpenAI(
+            model="meta-llama/llama-3.3-70b-instruct",
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            max_tokens=1500,
+            max_retries=1,
+            timeout=60
+        )
+    )
+
+# Primary: first Groq model. Falls through all Groq models, then OpenRouter
 llm = llms[0].with_fallbacks(llms[1:])
 
 
