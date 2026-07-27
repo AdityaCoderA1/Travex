@@ -55,7 +55,10 @@ if not GROQ_API_KEY:
 
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
-    api_key=GROQ_API_KEY
+    api_key=GROQ_API_KEY,
+    max_tokens=1500,
+    max_retries=10,
+    timeout=60
 )
 
 
