@@ -53,10 +53,25 @@ if not GROQ_API_KEY:
 # LLM
 # =========================
 
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    api_key=GROQ_API_KEY
-)
+models = [
+    "llama-3.1-8b-instant",
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+    "llama-3.3-70b-versatile"
+]
+
+llms = [
+    ChatGroq(
+        model=m,
+        api_key=GROQ_API_KEY,
+        max_tokens=1500,
+        max_retries=0, # Fail fast and fallback
+        timeout=30
+    ) for m in models
+]
+
+llm = llms[0].with_fallbacks(llms[1:])
 
 
 # =========================
@@ -87,8 +102,7 @@ def flight_agent(state: TravelState):
         "flight_results": flight_data,
         "messages": [
             AIMessage(content="Flight results fetched.")
-        ],
-        "llm_calls": state.get("llm_calls", 0) + 1
+        ]
     }
 
 
@@ -105,8 +119,7 @@ def hotel_agent(state: TravelState):
         "hotel_results": hotel_results,
         "messages": [
             AIMessage(content="Hotel information fetched.")
-        ],
-        "llm_calls": state.get("llm_calls", 0) + 1
+        ]
     }
 
 
@@ -123,8 +136,7 @@ def activities_agent(state: TravelState):
         "activities_results": activities_results,
         "messages": [
             AIMessage(content="Attractions and activities information fetched.")
-        ],
-        "llm_calls": state.get("llm_calls", 0) + 1
+        ]
     }
 
 
@@ -211,7 +223,8 @@ Rules:
 
 Determine if valid and provide feedback if not.
 """
-    validator_llm = llm.with_structured_output(BudgetValidation)
+    validator_llms = [base_llm.with_structured_output(BudgetValidation) for base_llm in llms]
+    validator_llm = validator_llms[0].with_fallbacks(validator_llms[1:])
     
     try:
         result = validator_llm.invoke([
@@ -304,9 +317,10 @@ graph.add_node("budget_validator_agent", budget_validator_agent)
 graph.add_node("final_agent", final_agent)
 
 graph.add_edge(START, "flight_agent")
-graph.add_edge("flight_agent", "hotel_agent")
-graph.add_edge("hotel_agent", "activities_agent")
-graph.add_edge("activities_agent", "itinerary_agent")
+graph.add_edge(START, "hotel_agent")
+graph.add_edge(START, "activities_agent")
+
+graph.add_edge(["flight_agent", "hotel_agent", "activities_agent"], "itinerary_agent")
 graph.add_edge("itinerary_agent", "budget_validator_agent")
 
 graph.add_conditional_edges("budget_validator_agent", check_budget_validity, {
